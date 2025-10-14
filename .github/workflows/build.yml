@@ -64,6 +64,6 @@ jobs:
       with:
           # Use a wildcard to upload all renamed .tar.xz files
           file: release-assets/*.tar.xz
-          tag: rolling-jre8 # Use a specific tag for this release
+          tag: rolling-jre8-17-21 # Use a specific tag for this release
           overwrite: true
           file_glob: true

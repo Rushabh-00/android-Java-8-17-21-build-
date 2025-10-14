@@ -1,0 +1,97 @@
+name: Build Headless Server JREs
+
+on:
+  workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
+
+permissions:
+  contents: write # Required to create and update the release
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        # Define all the build combinations we need
+        version: [8, 17, 21]
+        arch: ["aarch32", "aarch64"]
+      fail-fast: false
+
+    name: "Build Java ${{ matrix.version }} (headless) for Android ${{ matrix.arch }}"
+    runs-on: ubuntu-22.04
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install autoconf python3 python-is-python3 unzip zip systemtap-sdt-dev gcc-multilib g++-multilib libelf-dev
+
+      - name: Set up Correct JDK for Building
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          # Java 8 needs to be built with an older JDK, modern Java can build with itself
+          java-version: ${{ matrix.version == 8 && '8' || matrix.version }}
+
+      - name: THE FIX - Modify Build Script for Headless JRE
+        run: |
+          # This command finds the configure arguments in the shell script and removes all graphics-related dependencies (X11 libraries).
+          # This is the key to creating a truly headless JRE that works for servers.
+          sed -i 's/--with-x=.*//' ci_build_arch_${{ matrix.arch }}.sh
+          sed -i 's/--with-x=.*//' 1_ci_build_arch_${{ matrix.arch }}.sh
+          echo "Build scripts patched for headless build."
+
+      - name: Build with CI Build Script
+        run: |
+          # Set environment variable for the script to know which version to build
+          export TARGET_VERSION=${{ matrix.version }}
+
+          # Run the correct script based on the Java version
+          if [[ "${{ matrix.version }}" == "8" ]]; then
+            bash "ci_build_arch_${{ matrix.arch }}.sh"
+          else
+            bash "1_ci_build_arch_${{ matrix.arch }}.sh"
+          fi
+
+      - name: Rename Artifact for Upload
+        run: |
+          # Rename the output file to the simple format you requested (e.g., 8-arm64.tar.xz)
+          ARCH_SUFFIX=$([[ "${{ matrix.arch }}" == "aarch32" ]] && echo "arm32" || echo "arm64")
+          mv jre${{ matrix.version }}*.tar.xz ${{ matrix.version }}-${ARCH_SUFFIX}.tar.xz
+          echo "Renamed artifact to ${{ matrix.version }}-${ARCH_SUFFIX}.tar.xz"
+
+      - name: Upload JRE build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: "jre-builds" # All artifacts will go into one common bucket
+          path: ${{ matrix.version }}-*.tar.xz
+
+  release:
+    needs: build
+    runs-on: ubuntu-22.04
+    
+    steps:
+      - name: Download all JRE builds
+        uses: actions/download-artifact@v4
+        with:
+          name: "jre-builds"
+          path: final-jres
+
+      - name: List files for verification
+        run: ls -R final-jres
+
+      - name: Create or Update Release with All JREs
+        uses: svenstaro/upload-release-action@v2
+        with:
+          # This uses your fork's repository name automatically
+          repository: ${{ github.repository }}
+          # This token is automatically provided by GitHub
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: "rolling-server" # A new, separate tag for our server builds
+          release_name: "Rolling Server JREs"
+          # This will upload all the .tar.xz files from the folder
+          file: final-jres/*.tar.xz
+          file_glob: true
+          overwrite: true
+          prerelease: true

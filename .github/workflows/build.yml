@@ -38,8 +38,7 @@ jobs:
           name: "jre${{ matrix.version }}-${{matrix.arch}}"
           path: jre${{ matrix.version }}*.tar.xz
 
-  # DELETED: The entire 'pojav' job that created the zip files is gone.
-  # NEW: A dedicated job to create the release for both versions.
+  # new tar.zx upload methode insert of zip better for download and extract 
   release:
     needs: build_android
     runs-on: ubuntu-22.04
@@ -63,11 +62,10 @@ jobs:
       
       - name: Upload to GitHub Release
         uses: svenstaro/upload-release-action@v2
-        # Only run on a push to the buildjre17-21 branch in your repository
         if: github.ref_name == 'buildjre17-21'
         with:
           # Use a wildcard to upload all renamed .tar.xz files
           file: release-assets/*.tar.xz
-          tag: rolling-jre8-17-21 # Use a specific tag for this release
+          tag: rolling-jre8-17-21 # Use a specific tag for this release for java 17 and 21  aarch32 and aarch64 
           overwrite: true
           file_glob: true

@@ -38,8 +38,7 @@ jobs:
         name: 'jre8-${{matrix.arch}}'
         path: jre8*.tar.xz
 
-  # DELETED: The entire 'pojav' job that created the zip file is gone.
-  # NEW: A dedicated job to create the release.
+  # new Direct tar.zx file release has added 
   release:
     needs: build_android
     runs-on: ubuntu-22.04
@@ -59,11 +58,10 @@ jobs:
 
     - name: Upload to GitHub Release
       uses: svenstaro/upload-release-action@v2
-      # Only run on a push to the buildjre8 branch in your repository
       if: github.ref_name == 'buildjre8'
       with:
-          # Use a wildcard to upload all renamed .tar.xz files
+          # upload all renamed .tar.xz files
           file: release-assets/*.tar.xz
-          tag: rolling-jre8-17-21 # Use a specific tag for this release
+          tag: rolling-jre8-17-21 # Use a specific tag for this release of java 8
           overwrite: true
           file_glob: true

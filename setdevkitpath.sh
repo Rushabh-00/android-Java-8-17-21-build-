@@ -24,7 +24,7 @@ then
   echo "VM variant: client"
   if [[ -z "$JVM_VARIANTS" ]]
   then
-    export JVM_VARIANTS=client
+    export JVM_VARIANTS=server
   fi
 else
   echo "VM variant: server"

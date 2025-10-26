@@ -6,7 +6,7 @@ if [[ "$TARGET_JDK" == "arm" ]]
 then
   export TARGET_JDK=aarch32
   export TARGET_PHYS=aarch32-linux-androideabi
-  export JVM_VARIANTS=client
+  export JVM_VARIANTS=server
   export CFLAGS+=" -march=armv7-a"
 else
   export TARGET_PHYS=$TARGET
@@ -96,8 +96,7 @@ bash ./configure \
     --with-extra-ldflags="$LDFLAGS" \
     --enable-option-checking=fatal \
     --with-jdk-variant=normal \
-  #  --with-jvm-variants="${JVM_VARIANTS/AND/,}" \
-  --with-jvm-variants="$server" \
+    --with-jvm-variants="${JVM_VARIANTS/AND/,}" \
     --with-cups-include=$CUPS_DIR \
     --with-devkit=$TOOLCHAIN \
     --with-debug-level=$JDK_DEBUG_LEVEL \
